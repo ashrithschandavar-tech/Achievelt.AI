@@ -17,19 +17,23 @@ const logoHome = document.querySelector('nav .flex.items-center.gap-2'); // Sele
 
 // --- RESET FUNCTIONALITY ---
 // Clicking the logo resets the app to the initial state
-logoHome.style.cursor = 'pointer';
-logoHome.addEventListener('click', () => {
-    // Clear inputs (optional, remove if you want to keep user text)
-    document.getElementById('user-aim').value = '';
-    document.getElementById('due-date').value = '';
-    
-    // UI Transition back to home
-    resultContainer.classList.add('hidden');
-    loadingState.classList.add('hidden');
-    inputCard.classList.remove('hidden');
-    headerSection.classList.remove('hidden');
-    window.scrollTo(0, 0);
-});
+if (logoHome) {
+    logoHome.style.cursor = 'pointer';
+    logoHome.addEventListener('click', () => {
+        // Reset the form
+        document.getElementById('user-aim').value = '';
+        document.getElementById('due-date').value = '';
+        document.getElementById('category').selectedIndex = 0;
+        document.getElementById('difficulty').selectedIndex = 0;
+        
+        // UI Transition back to home
+        resultContainer.classList.add('hidden');
+        loadingState.classList.add('hidden');
+        inputCard.classList.remove('hidden');
+        headerSection.classList.remove('hidden');
+        window.scrollTo(0, 0);
+    });
+}
 
 generateBtn.addEventListener('click', async () => {
     const aim = document.getElementById('user-aim').value;
@@ -46,15 +50,14 @@ generateBtn.addEventListener('click', async () => {
 
     const today = new Date().toISOString().split('T')[0];
 
-    // IMPROVED PROMPT: Added Category Mismatch detection
     const prompt = `Act as an expert strategist. Today's date is ${today} (Year 2026).
     Goal: "${aim}". Target Date: ${dueDate}. Difficulty: ${difficulty}. Category: ${category}.
 
     CRITICAL INSTRUCTIONS:
-    1. Check if the goal "${aim}" actually belongs in the category "${category}". If they are unrelated (e.g., Goal: "Cooking" in Category: "Fitness"), populate the "categoryMismatch" field with a polite message.
-    2. If the time between ${today} and ${dueDate} is too short to realistically achieve the goal, populate the "warning" field.
-    3. All dates in "phases" must be between ${today} and ${dueDate}. 
-    4. Even if there is a mismatch or warning, STILL generate a high-quality roadmap.
+    1. CATEGORY CHECK: If "${aim}" is unrelated to "${category}" (e.g. "Cooking" in "Fitness"), populate the "categoryMismatch" field with a polite message.
+    2. TIMELINE CHECK: If the time between ${today} and ${dueDate} is too short to realistically achieve the goal, populate the "warning" field.
+    3. DATE ENFORCEMENT: All phase dates must be between ${today} and ${dueDate}. Use 2026/2027 based on the timeline.
+    4. COMPLETE TASK: Even if there is a mismatch, STILL generate the full roadmap.
 
     Return ONLY a JSON object:
     {
@@ -108,9 +111,9 @@ function renderUI(plan, difficulty) {
     loadingState.classList.add('hidden');
     resultContainer.classList.remove('hidden');
 
-    // Build Warning Boxes (Supports both Timeline and Category warnings)
     let warningsHtml = '';
     
+    // Category Mismatch Box (Blue)
     if (plan.categoryMismatch) {
         warningsHtml += `
             <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-2xl mb-4 animate-fade-in">
@@ -124,6 +127,7 @@ function renderUI(plan, difficulty) {
             </div>`;
     }
 
+    // Ambitious Timeline Box (Amber)
     if (plan.warning) {
         warningsHtml += `
             <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 animate-fade-in">
