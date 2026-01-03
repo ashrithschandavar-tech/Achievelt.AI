@@ -13,6 +13,23 @@ const inputCard = document.getElementById('input-card');
 const loadingState = document.getElementById('loading-state');
 const resultContainer = document.getElementById('result-container');
 const headerSection = document.getElementById('header-section');
+const logoHome = document.querySelector('nav .flex.items-center.gap-2'); // Selects the logo area
+
+// --- RESET FUNCTIONALITY ---
+// Clicking the logo resets the app to the initial state
+logoHome.style.cursor = 'pointer';
+logoHome.addEventListener('click', () => {
+    // Clear inputs (optional, remove if you want to keep user text)
+    document.getElementById('user-aim').value = '';
+    document.getElementById('due-date').value = '';
+    
+    // UI Transition back to home
+    resultContainer.classList.add('hidden');
+    loadingState.classList.add('hidden');
+    inputCard.classList.remove('hidden');
+    headerSection.classList.remove('hidden');
+    window.scrollTo(0, 0);
+});
 
 generateBtn.addEventListener('click', async () => {
     const aim = document.getElementById('user-aim').value;
@@ -27,22 +44,22 @@ generateBtn.addEventListener('click', async () => {
     headerSection.classList.add('hidden');
     loadingState.classList.remove('hidden');
 
-    // GET TODAY'S DATE FOR THE AI
     const today = new Date().toISOString().split('T')[0];
 
+    // IMPROVED PROMPT: Added Category Mismatch detection
     const prompt = `Act as an expert strategist. Today's date is ${today} (Year 2026).
-    The user wants to achieve: "${aim}" by the date: ${dueDate}.
-    Difficulty: ${difficulty}. Category: ${category}.
+    Goal: "${aim}". Target Date: ${dueDate}. Difficulty: ${difficulty}. Category: ${category}.
 
     CRITICAL INSTRUCTIONS:
-    1. All dates in the "phases" MUST be between ${today} and ${dueDate}. Do NOT use past years like 2024 or 2025.
-    2. If the time between ${today} and ${dueDate} is far too short to realistically achieve "${aim}" (e.g., learn music in 1 day), 
-       populate the "warning" field with a detailed explanation of why it is impossible and suggest a realistic timeframe.
-    3. If the timeline is realistic, set "warning" to null.
+    1. Check if the goal "${aim}" actually belongs in the category "${category}". If they are unrelated (e.g., Goal: "Cooking" in Category: "Fitness"), populate the "categoryMismatch" field with a polite message.
+    2. If the time between ${today} and ${dueDate} is too short to realistically achieve the goal, populate the "warning" field.
+    3. All dates in "phases" must be between ${today} and ${dueDate}. 
+    4. Even if there is a mismatch or warning, STILL generate a high-quality roadmap.
 
-    Return ONLY a JSON object. Structure:
+    Return ONLY a JSON object:
     {
-      "warning": "Detailed ambitious timeline message here or null",
+      "warning": "Timeline warning or null",
+      "categoryMismatch": "Mismatch message or null",
       "title": "Title",
       "description": "Short overview",
       "phases": [{"name": "Phase 1", "date": "Month/Year", "desc": "Details"}],
@@ -57,7 +74,6 @@ generateBtn.addEventListener('click', async () => {
         if (success) break;
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
         try {
-            console.log(`Trying model: ${model}...`);
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -92,22 +108,37 @@ function renderUI(plan, difficulty) {
     loadingState.classList.add('hidden');
     resultContainer.classList.remove('hidden');
 
-    const warningHtml = plan.warning ? `
-        <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 animate-fade-in">
-            <div class="flex items-start gap-4">
-                <div class="text-amber-600 mt-1">
-                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+    // Build Warning Boxes (Supports both Timeline and Category warnings)
+    let warningsHtml = '';
+    
+    if (plan.categoryMismatch) {
+        warningsHtml += `
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-2xl mb-4 animate-fade-in">
+                <div class="flex items-start gap-4">
+                    <div class="text-blue-600 mt-1"><i class="fa-solid fa-circle-info text-xl"></i></div>
+                    <div>
+                        <h4 class="font-bold text-blue-900 text-lg">Category Insight</h4>
+                        <p class="text-blue-800 mt-1 leading-relaxed text-sm">${plan.categoryMismatch}</p>
+                    </div>
                 </div>
-                <div>
-                    <h4 class="font-bold text-amber-900 text-lg">Ambitious Timeline Detected</h4>
-                    <p class="text-amber-800 mt-1 leading-relaxed text-sm">${plan.warning}</p>
+            </div>`;
+    }
+
+    if (plan.warning) {
+        warningsHtml += `
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 animate-fade-in">
+                <div class="flex items-start gap-4">
+                    <div class="text-amber-600 mt-1"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
+                    <div>
+                        <h4 class="font-bold text-amber-900 text-lg">Ambitious Timeline Detected</h4>
+                        <p class="text-amber-800 mt-1 leading-relaxed text-sm">${plan.warning}</p>
+                    </div>
                 </div>
-            </div>
-        </div>
-    ` : '';
+            </div>`;
+    }
 
     resultContainer.innerHTML = `
-        ${warningHtml}
+        ${warningsHtml}
 
         <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 animate-fade-in">
             <div class="flex justify-between items-start mb-4">
@@ -125,7 +156,6 @@ function renderUI(plan, difficulty) {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="md:col-span-2 space-y-4 relative ml-4 md:ml-8 border-l-2 border-dashed border-indigo-200 pl-8">
                 <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><i class="fa-solid fa-map text-indigo-500"></i> Strategic Milestones</h3>
-                
                 ${plan.phases.map((p, i) => `
                     <div class="milestone-card shadow-sm animate-fade-in" style="animation-delay: ${i * 0.1}s">
                         <div class="milestone-number">${i + 1}</div>
@@ -145,7 +175,6 @@ function renderUI(plan, difficulty) {
                         ${plan.habits.map(h => `<li class="flex gap-2"><span>•</span> ${h}</li>`).join('')}
                     </ul>
                 </div>
-
                 <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 class="font-bold text-gray-800 mb-4">Common Hurdles</h3>
                     <div class="space-y-4">
