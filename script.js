@@ -18,6 +18,7 @@ generateBtn.addEventListener('click', async () => {
     const aim = document.getElementById('user-aim').value;
     const category = document.getElementById('category').value;
     const difficulty = document.getElementById('difficulty').value;
+    const dueDate = document.getElementById('due-date').value; // Get the user's date
 
     if (!aim) return alert("Please enter your goal!");
 
@@ -26,10 +27,17 @@ generateBtn.addEventListener('click', async () => {
     headerSection.classList.add('hidden');
     loadingState.classList.remove('hidden');
 
+    // Prompt updated to detect unrealistic timelines
     const prompt = `Act as an expert strategist. Create a success roadmap for: "${aim}". 
-    Difficulty: ${difficulty}. Category: ${category}.
+    Target Date: ${dueDate}. Difficulty: ${difficulty}. Category: ${category}.
+    
+    CRITICAL: If the time between today and ${dueDate} is far too short to realistically achieve "${aim}" (e.g., learning piano in 2 days), 
+    populate the "warning" field with a helpful, detailed explanation of why it's difficult and a better suggested timeframe. 
+    Otherwise, set "warning" to null.
+
     Return ONLY a JSON object. Structure:
     {
+      "warning": "Detailed ambitious timeline message here or null",
       "title": "Title",
       "description": "Short overview",
       "phases": [{"name": "Phase 1", "date": "Month 1", "desc": "Details"}],
@@ -40,12 +48,9 @@ generateBtn.addEventListener('click', async () => {
 
     let success = false;
 
-    // Loop through models until one works
     for (const model of MODELS_TO_TRY) {
         if (success) break;
-
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
-        
         try {
             console.log(`Trying model: ${model}...`);
             const response = await fetch(API_URL, {
@@ -55,34 +60,23 @@ generateBtn.addEventListener('click', async () => {
                     contents: [{ parts: [{ text: prompt }] }]
                 })
             });
-
             const data = await response.json();
-
             if (data.error) {
-                // If it's a quota error (limit 0), move to next model
-                if (data.error.code === 429) {
-                    console.warn(`${model} failed with quota limit 0.`);
-                    continue; 
-                }
+                if (data.error.code === 429) continue; 
                 throw new Error(data.error.message);
             }
-
-            // Extract and clean JSON
             let rawText = data.candidates[0].content.parts[0].text;
             const cleanJson = rawText.replace(/```json|```/g, "").trim();
             const plan = JSON.parse(cleanJson);
-            
             renderUI(plan, difficulty);
             success = true;
-
         } catch (error) {
             console.error(`Error with ${model}:`, error);
         }
     }
 
     if (!success) {
-        alert("CRITICAL ERROR: Your account has 'Limit: 0' for all models. \n\nFIX: Go to AI Studio, click 'Create API key in NEW project' and wait 10 minutes for it to activate. No bank account is needed for this.");
-        // Reset UI
+        alert("CRITICAL ERROR: Quota issues. Try again in a few minutes.");
         inputCard.classList.remove('hidden');
         headerSection.classList.remove('hidden');
         loadingState.classList.add('hidden');
@@ -93,7 +87,24 @@ function renderUI(plan, difficulty) {
     loadingState.classList.add('hidden');
     resultContainer.classList.remove('hidden');
 
+    // Generate the Warning Box HTML only if the AI detected an ambitious timeline
+    const warningHtml = plan.warning ? `
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 animate-fade-in">
+            <div class="flex items-start gap-4">
+                <div class="text-amber-600 mt-1">
+                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-amber-900 text-lg">Ambitious Timeline Detected</h4>
+                    <p class="text-amber-800 mt-1 leading-relaxed text-sm">${plan.warning}</p>
+                </div>
+            </div>
+        </div>
+    ` : '';
+
     resultContainer.innerHTML = `
+        ${warningHtml}
+
         <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 animate-fade-in">
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-3xl font-bold text-gray-800">${plan.title}</h2>
