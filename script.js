@@ -18,29 +18,34 @@ generateBtn.addEventListener('click', async () => {
     const aim = document.getElementById('user-aim').value;
     const category = document.getElementById('category').value;
     const difficulty = document.getElementById('difficulty').value;
-    const dueDate = document.getElementById('due-date').value; // Get the user's date
+    const dueDate = document.getElementById('due-date').value;
 
-    if (!aim) return alert("Please enter your goal!");
+    if (!aim || !dueDate) return alert("Please enter your goal and a due date!");
 
     // UI Transition
     inputCard.classList.add('hidden');
     headerSection.classList.add('hidden');
     loadingState.classList.remove('hidden');
 
-    // Prompt updated to detect unrealistic timelines
-    const prompt = `Act as an expert strategist. Create a success roadmap for: "${aim}". 
-    Target Date: ${dueDate}. Difficulty: ${difficulty}. Category: ${category}.
-    
-    CRITICAL: If the time between today and ${dueDate} is far too short to realistically achieve "${aim}" (e.g., learning piano in 2 days), 
-    populate the "warning" field with a helpful, detailed explanation of why it's difficult and a better suggested timeframe. 
-    Otherwise, set "warning" to null.
+    // GET TODAY'S DATE FOR THE AI
+    const today = new Date().toISOString().split('T')[0];
+
+    const prompt = `Act as an expert strategist. Today's date is ${today} (Year 2026).
+    The user wants to achieve: "${aim}" by the date: ${dueDate}.
+    Difficulty: ${difficulty}. Category: ${category}.
+
+    CRITICAL INSTRUCTIONS:
+    1. All dates in the "phases" MUST be between ${today} and ${dueDate}. Do NOT use past years like 2024 or 2025.
+    2. If the time between ${today} and ${dueDate} is far too short to realistically achieve "${aim}" (e.g., learn music in 1 day), 
+       populate the "warning" field with a detailed explanation of why it is impossible and suggest a realistic timeframe.
+    3. If the timeline is realistic, set "warning" to null.
 
     Return ONLY a JSON object. Structure:
     {
       "warning": "Detailed ambitious timeline message here or null",
       "title": "Title",
       "description": "Short overview",
-      "phases": [{"name": "Phase 1", "date": "Month 1", "desc": "Details"}],
+      "phases": [{"name": "Phase 1", "date": "Month/Year", "desc": "Details"}],
       "habits": ["Habit 1", "Habit 2", "Habit 3", "Habit 4", "Habit 5"],
       "hurdles": [{"issue": "Challenge", "sol": "Solution"}],
       "resources": [{"type": "BOOK", "price": "Free", "name": "Resource Name", "desc": "Description"}]
@@ -87,7 +92,6 @@ function renderUI(plan, difficulty) {
     loadingState.classList.add('hidden');
     resultContainer.classList.remove('hidden');
 
-    // Generate the Warning Box HTML only if the AI detected an ambitious timeline
     const warningHtml = plan.warning ? `
         <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 animate-fade-in">
             <div class="flex items-start gap-4">
@@ -109,7 +113,9 @@ function renderUI(plan, difficulty) {
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-3xl font-bold text-gray-800">${plan.title}</h2>
                 <div class="flex gap-2">
-                    <span class="px-3 py-1 bg-green-100 text-green-600 text-xs font-bold rounded-full tracking-wide">REALISTIC</span>
+                    <span class="px-3 py-1 ${plan.warning ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'} text-xs font-bold rounded-full tracking-wide">
+                        ${plan.warning ? 'AMBITIOUS' : 'REALISTIC'}
+                    </span>
                     <span class="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full tracking-wide">${difficulty.toUpperCase()}</span>
                 </div>
             </div>
