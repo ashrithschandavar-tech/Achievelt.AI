@@ -7,15 +7,10 @@ module.exports = async (req, res) => {
 
     try {
         const { prompt } = req.body;
-        
-        // .trim() removes any hidden spaces that cause the "Invalid" error
-        const API_KEY = process.env.GEMINI_KEY?.trim(); 
+        // This MUST match the new name we put in Vercel
+        const API_KEY = process.env.GEMINI_API_KEY_FINAL; 
 
-        if (!API_KEY) {
-            return res.status(500).json({ error: "API Key is missing in Vercel settings." });
-        }
-
-        // Using v1 (Stable) instead of v1beta
+        // 2026 STABLE ENDPOINT
         const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
@@ -30,13 +25,13 @@ module.exports = async (req, res) => {
 
         if (data.error) {
             return res.status(data.error.code || 500).json({ 
-                error: `Google says: ${data.error.message}` 
+                error: data.error.message 
             });
         }
 
         return res.status(200).json(data);
 
     } catch (error) {
-        return res.status(500).json({ error: "Connection Error: " + error.message });
+        return res.status(500).json({ error: "System Connection Error" });
     }
 };
