@@ -56,7 +56,19 @@
             });
 
             const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
+
+if (!response.ok) {
+    // This catches the real error message from the server
+    const errorMsg = data.error?.message || data.error || response.statusText;
+    throw new Error(errorMsg);
+}
+
+// Then handle the Gemini-specific response format
+if (!data.candidates || !data.candidates[0]) {
+    throw new Error("AI returned an empty response. Check your API Key.");
+}
+
+let rawText = data.candidates[0].content.parts[0].text;
 
             let rawText = data.candidates[0].content.parts[0].text;
             const cleanJson = rawText.replace(/```json|```/g, "").trim();
