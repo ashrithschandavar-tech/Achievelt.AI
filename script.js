@@ -64,12 +64,13 @@
             // --- SECURE CALL ENDS HERE ---
 
         } catch (error) {
-            console.error("Error:", error);
-            alert("Something went wrong. Make sure you are running this through a Vercel-like environment!");
-            inputCard.classList.remove('hidden');
-            headerSection.classList.remove('hidden');
-            loadingState.classList.add('hidden');
-        }
+        console.error("Full Error:", error);
+        // This will show us the REAL error message in a popup
+        alert("Actual Error: " + error.message); 
+        inputCard.classList.remove('hidden');
+        headerSection.classList.remove('hidden');
+        loadingState.classList.add('hidden');
+    }
     });
 
     function renderUI(plan, difficulty) {
