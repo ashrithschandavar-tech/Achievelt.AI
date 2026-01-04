@@ -9,24 +9,23 @@ module.exports = async (req, res) => {
         const { prompt } = req.body;
         const API_KEY = process.env.GEMINI_KEY;
 
-        // UPDATED URL: Using the stable v1 path and the 2.0-flash model 
-        // which is the 2026 default for India
-        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+        // 2026 URL for India: v1beta is the only one supporting 2.0 Flash currently
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { response_mime_type: "application/json" }
             })
         });
 
         const data = await response.json();
         
-        // If Google sends back an error or empty candidates
-        if (data.error || !data.candidates || data.candidates.length === 0) {
-            const msg = data.error?.message || "Model is busy or restricted in your region.";
-            return res.status(200).json({ error: msg });
+        // If there's an error from Google, pass it through so we can see it
+        if (data.error) {
+            return res.status(data.error.code || 500).json({ error: data.error.message });
         }
 
         return res.status(200).json(data);

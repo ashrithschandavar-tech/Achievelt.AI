@@ -48,7 +48,6 @@
         }`;
 
         try {
-            // --- SECURE CALL STARTS HERE ---
             const response = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -57,28 +56,31 @@
 
             const data = await response.json();
 
-if (!response.ok) {
-    // This catches the real error message from the server
-    const errorMsg = data.error?.message || data.error || response.statusText;
-    throw new Error(errorMsg);
-}
+            if (!response.ok || data.error) {
+                throw new Error(data.error || "API Error");
+            }
 
-// Then handle the Gemini-specific response format
-if (!data.candidates || !data.candidates[0]) {
-    throw new Error("AI returned an empty response. Check your API Key.");
-}
+            let rawText = "";
+            if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                rawText = data.candidates[0].content.parts[0].text;
+            } else {
+                console.log("Unexpected Data Structure:", data);
+                throw new Error("AI structure changed. Check console.");
+            }
 
-let rawText = data.candidates[0].content.parts[0].text;
+            const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const plan = JSON.parse(cleanJson);
+            
+            renderUI(plan, difficulty);
 
         } catch (error) {
-        console.error("Full Error:", error);
-        // This will show us the REAL error message in a popup
-        alert("Actual Error: " + error.message); 
-        inputCard.classList.remove('hidden');
-        headerSection.classList.remove('hidden');
-        loadingState.classList.add('hidden');
-    }
-    });
+            console.error("Full Error Details:", error);
+            alert("System Message: " + error.message); 
+            inputCard.classList.remove('hidden');
+            headerSection.classList.remove('hidden');
+            loadingState.classList.add('hidden');
+        }
+    }); // <--- THIS WAS THE MISSING BRACE
 
     function renderUI(plan, difficulty) {
         loadingState.classList.add('hidden');
@@ -95,7 +97,7 @@ let rawText = data.candidates[0].content.parts[0].text;
         resultContainer.innerHTML = `
             ${warningsHtml}
             <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8">
-                <h2 class="text-3xl font-bolad text-gray-800">${plan.title}</h2>
+                <h2 class="text-3xl font-bold text-gray-800">${plan.title}</h2>
                 <p class="text-gray-600 mt-2">${plan.description}</p>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
