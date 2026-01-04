@@ -8,9 +8,10 @@ module.exports = async (req, res) => {
     try {
         const { prompt } = req.body;
         const API_KEY = process.env.GEMINI_KEY;
-        
-        // Using the 2.0-flash model which replaced the 1.5 versions in late 2025
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+        // UPDATED URL: Using the stable v1 path and the 2.0-flash model 
+        // which is the 2026 default for India
+        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -22,15 +23,10 @@ module.exports = async (req, res) => {
 
         const data = await response.json();
         
-        // This is the most important part for you right now:
-        // If Google sends back an empty list, we tell you WHY.
-        if (!data.candidates || data.candidates.length === 0) {
-            const finishReason = data.candidates?.[0]?.finishReason || "UNKNOWN";
-            const safety = JSON.stringify(data.promptFeedback) || "No safety info";
-            return res.status(200).json({ 
-                error: `Empty Response. Reason: ${finishReason}. Safety: ${safety}`,
-                fullDebug: data 
-            });
+        // If Google sends back an error or empty candidates
+        if (data.error || !data.candidates || data.candidates.length === 0) {
+            const msg = data.error?.message || "Model is busy or restricted in your region.";
+            return res.status(200).json({ error: msg });
         }
 
         return res.status(200).json(data);
