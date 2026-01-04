@@ -8,32 +8,33 @@ module.exports = async (req, res) => {
     try {
         const { prompt } = req.body;
         const API_KEY = process.env.GEMINI_KEY;
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        
+        // Using the 2.0-flash model which replaced the 1.5 versions in late 2025
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                // THIS PART IS NEW: It tells the AI not to block the response
-                safetySettings: [
-                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                ]
+                contents: [{ parts: [{ text: prompt }] }]
             })
         });
 
         const data = await response.json();
         
-        // If the AI blocked it anyway, we'll see it here
-        if (data.promptFeedback?.blockReason) {
-            return res.status(200).json({ error: `Blocked by Google Safety: ${data.promptFeedback.blockReason}` });
+        // This is the most important part for you right now:
+        // If Google sends back an empty list, we tell you WHY.
+        if (!data.candidates || data.candidates.length === 0) {
+            const finishReason = data.candidates?.[0]?.finishReason || "UNKNOWN";
+            const safety = JSON.stringify(data.promptFeedback) || "No safety info";
+            return res.status(200).json({ 
+                error: `Empty Response. Reason: ${finishReason}. Safety: ${safety}`,
+                fullDebug: data 
+            });
         }
 
         return res.status(200).json(data);
     } catch (error) {
-        return res.status(500).json({ error: "Server error" });
+        return res.status(500).json({ error: "Server error: " + error.message });
     }
 };
