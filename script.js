@@ -1,19 +1,32 @@
+// 1. YOUR API KEY
+const API_KEY = 'AIzaSyAcF_vxXKCVOiSQVBiPWfEKEyCyFlGFCsk'; 
+
+// 2. List of models to try in order of availability
+const MODELS_TO_TRY = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-3-flash-preview'
+];
+
 const generateBtn = document.getElementById('generate-btn');
 const inputCard = document.getElementById('input-card');
 const loadingState = document.getElementById('loading-state');
 const resultContainer = document.getElementById('result-container');
 const headerSection = document.getElementById('header-section');
-const logoHome = document.querySelector('nav .flex.items-center.gap-2'); 
+const logoHome = document.querySelector('nav .flex.items-center.gap-2'); // Selects the logo area
 
 // --- RESET FUNCTIONALITY ---
+// Clicking the logo resets the app to the initial state
 if (logoHome) {
     logoHome.style.cursor = 'pointer';
     logoHome.addEventListener('click', () => {
+        // Reset the form
         document.getElementById('user-aim').value = '';
         document.getElementById('due-date').value = '';
         document.getElementById('category').selectedIndex = 0;
         document.getElementById('difficulty').selectedIndex = 0;
         
+        // UI Transition back to home
         resultContainer.classList.add('hidden');
         loadingState.classList.add('hidden');
         inputCard.classList.remove('hidden');
@@ -30,6 +43,7 @@ generateBtn.addEventListener('click', async () => {
 
     if (!aim || !dueDate) return alert("Please enter your goal and a due date!");
 
+    // UI Transition
     inputCard.classList.add('hidden');
     headerSection.classList.add('hidden');
     loadingState.classList.remove('hidden');
@@ -40,12 +54,12 @@ generateBtn.addEventListener('click', async () => {
     Goal: "${aim}". Target Date: ${dueDate}. Difficulty: ${difficulty}. Category: ${category}.
 
     CRITICAL INSTRUCTIONS:
-    1. CATEGORY CHECK: If "${aim}" is unrelated to "${category}", populate the "categoryMismatch" field.
-    2. TIMELINE CHECK: If time is too short, populate the "warning" field.
-    3. DATE ENFORCEMENT: All phase dates must be between ${today} and ${dueDate}.
-    4. COMPLETE TASK: Even if mismatch, generate full roadmap.
+    1. CATEGORY CHECK: If "${aim}" is unrelated to "${category}" (e.g. "Cooking" in "Fitness"), populate the "categoryMismatch" field with a polite message.
+    2. TIMELINE CHECK: If the time between ${today} and ${dueDate} is too short to realistically achieve the goal, populate the "warning" field.
+    3. DATE ENFORCEMENT: All phase dates must be between ${today} and ${dueDate}. Use 2026/2027 based on the timeline.
+    4. COMPLETE TASK: Even if there is a mismatch, STILL generate the full roadmap.
 
-    Return ONLY JSON:
+    Return ONLY a JSON object:
     {
       "warning": "Timeline warning or null",
       "categoryMismatch": "Mismatch message or null",
@@ -57,27 +71,36 @@ generateBtn.addEventListener('click', async () => {
       "resources": [{"type": "BOOK", "price": "Free", "name": "Resource Name", "desc": "Description"}]
     }`;
 
-    try {
-        // SECURE FETCH: Talks to your /api/generate instead of Google directly
-        const response = await fetch('/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt })
-        });
+    let success = false;
 
-        const data = await response.json();
+    for (const model of MODELS_TO_TRY) {
+        if (success) break;
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+            const data = await response.json();
+            if (data.error) {
+                if (data.error.code === 429) continue; 
+                throw new Error(data.error.message);
+            }
+            let rawText = data.candidates[0].content.parts[0].text;
+            const cleanJson = rawText.replace(/```json|```/g, "").trim();
+            const plan = JSON.parse(cleanJson);
+            renderUI(plan, difficulty);
+            success = true;
+        } catch (error) {
+            console.error(`Error with ${model}:`, error);
+        }
+    }
 
-        if (data.error) throw new Error(data.error.message);
-
-        let rawText = data.candidates[0].content.parts[0].text;
-        const cleanJson = rawText.replace(/```json|```/g, "").trim();
-        const plan = JSON.parse(cleanJson);
-        
-        renderUI(plan, difficulty);
-
-    } catch (error) {
-        console.error("Error:", error);
-        alert("CRITICAL ERROR: Please try again or check your API setup.");
+    if (!success) {
+        alert("CRITICAL ERROR: Quota issues. Try again in a few minutes.");
         inputCard.classList.remove('hidden');
         headerSection.classList.remove('hidden');
         loadingState.classList.add('hidden');
@@ -90,6 +113,7 @@ function renderUI(plan, difficulty) {
 
     let warningsHtml = '';
     
+    // Category Mismatch Box (Blue)
     if (plan.categoryMismatch) {
         warningsHtml += `
             <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-2xl mb-4 animate-fade-in">
@@ -103,6 +127,7 @@ function renderUI(plan, difficulty) {
             </div>`;
     }
 
+    // Ambitious Timeline Box (Amber)
     if (plan.warning) {
         warningsHtml += `
             <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 animate-fade-in">
@@ -118,6 +143,7 @@ function renderUI(plan, difficulty) {
 
     resultContainer.innerHTML = `
         ${warningsHtml}
+
         <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 animate-fade-in">
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-3xl font-bold text-gray-800">${plan.title}</h2>
