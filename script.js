@@ -70,11 +70,6 @@ if (!data.candidates || !data.candidates[0]) {
 
 let rawText = data.candidates[0].content.parts[0].text;
 
-            let rawText = data.candidates[0].content.parts[0].text;
-            const cleanJson = rawText.replace(/```json|```/g, "").trim();
-            renderUI(JSON.parse(cleanJson), difficulty);
-            // --- SECURE CALL ENDS HERE ---
-
         } catch (error) {
         console.error("Full Error:", error);
         // This will show us the REAL error message in a popup
