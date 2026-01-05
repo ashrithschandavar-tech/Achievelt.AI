@@ -1,13 +1,3 @@
-// 1. YOUR API KEY
-const API_KEY = 'AIzaSyDJ9V24uRW4QCZVCSL4i0ztNaaGVj9IchU'; 
-
-// 2. List of models to try in order of availability
-const MODELS_TO_TRY = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-3-flash-preview'
-];
-
 const generateBtn = document.getElementById('generate-btn');
 const inputCard = document.getElementById('input-card');
 const loadingState = document.getElementById('loading-state');
@@ -71,36 +61,26 @@ generateBtn.addEventListener('click', async () => {
       "resources": [{"type": "BOOK", "price": "Free", "name": "Resource Name", "desc": "Description"}]
     }`;
 
-    let success = false;
+    try {
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
 
-    for (const model of MODELS_TO_TRY) {
-        if (success) break;
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
-        try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
-            });
-            const data = await response.json();
-            if (data.error) {
-                if (data.error.code === 429) continue; 
-                throw new Error(data.error.message);
-            }
-            let rawText = data.candidates[0].content.parts[0].text;
-            const cleanJson = rawText.replace(/```json|```/g, "").trim();
-            const plan = JSON.parse(cleanJson);
-            renderUI(plan, difficulty);
-            success = true;
-        } catch (error) {
-            console.error(`Error with ${model}:`, error);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to generate plan');
         }
-    }
 
-    if (!success) {
-        alert("CRITICAL ERROR: Quota issues. Try again in a few minutes.");
+        const plan = await response.json();
+        renderUI(plan, difficulty);
+
+    } catch (error) {
+        console.error('Generation error:', error);
+        alert('Error: ' + error.message + '. Please try again later (quota or server issue).');
+
+        // Reset UI on error
         inputCard.classList.remove('hidden');
         headerSection.classList.remove('hidden');
         loadingState.classList.add('hidden');
