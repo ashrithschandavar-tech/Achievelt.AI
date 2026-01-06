@@ -33,13 +33,22 @@ export default async function handler(req, res) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
 
     try {
+      // ⚡ OPTIMIZATION: Add a 15-second timeout to each API call.
+      // If a model is unresponsive, we don't want to wait indefinitely.
+      // Aborting the request allows us to quickly fall back to the next model.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }]
-        })
+        }),
+        signal: controller.signal // Link the abort controller to the fetch request
       });
+
+      clearTimeout(timeoutId); // Clear the timeout if the request succeeds
 
       const data = await response.json();
 
