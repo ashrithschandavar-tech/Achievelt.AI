@@ -33,6 +33,12 @@ generateBtn.addEventListener('click', async () => {
 
     if (!aim || !dueDate) return alert("Please enter your goal and a due date!");
 
+    // --- UX Enhancement: Add loading state to the button ---
+    const originalButtonText = generateBtn.innerHTML;
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = `Generating... <i class="fas fa-spinner fa-spin"></i>`;
+
+
     // UI Transition
     inputCard.classList.add('hidden');
     headerSection.classList.add('hidden');
@@ -84,6 +90,10 @@ generateBtn.addEventListener('click', async () => {
         inputCard.classList.remove('hidden');
         headerSection.classList.remove('hidden');
         loadingState.classList.add('hidden');
+    } finally {
+        // --- UX Enhancement: Restore button state ---
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalButtonText;
     }
 });
 
