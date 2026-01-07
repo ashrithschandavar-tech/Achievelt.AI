@@ -93,9 +93,10 @@ function renderUI(plan, difficulty) {
 
     let warningsHtml = '';
     
+    // Category Mismatch Box (Blue)
     if (plan.categoryMismatch) {
         warningsHtml += `
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-2xl mb-4" data-aos="fade-right" data-aos-duration="800">
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-2xl mb-4 animate-fade-in">
                 <div class="flex items-start gap-4">
                     <div class="text-blue-600 mt-1"><i class="fa-solid fa-circle-info text-xl"></i></div>
                     <div>
@@ -106,9 +107,10 @@ function renderUI(plan, difficulty) {
             </div>`;
     }
 
+    // Ambitious Timeline Box (Amber)
     if (plan.warning) {
         warningsHtml += `
-            <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8" data-aos="fade-left" data-aos-duration="800">
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 animate-fade-in">
                 <div class="flex items-start gap-4">
                     <div class="text-amber-600 mt-1"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div>
                     <div>
@@ -122,7 +124,7 @@ function renderUI(plan, difficulty) {
     resultContainer.innerHTML = `
         ${warningsHtml}
 
-        <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8" data-aos="fade-up" data-aos-duration="1000">
+        <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-8 animate-fade-in">
             <div class="flex justify-between items-start mb-4">
                 <h2 class="text-3xl font-bold text-gray-800">${plan.title}</h2>
                 <div class="flex gap-2">
@@ -137,9 +139,9 @@ function renderUI(plan, difficulty) {
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="md:col-span-2 space-y-4 relative ml-4 md:ml-8 border-l-2 border-dashed border-indigo-200 pl-8">
-                <h3 class="text-xl font-bold mb-6 flex items-center gap-2" data-aos="zoom-in-right"><i class="fa-solid fa-map text-indigo-500"></i> Strategic Milestones</h3>
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><i class="fa-solid fa-map text-indigo-500"></i> Strategic Milestones</h3>
                 ${plan.phases.map((p, i) => `
-                    <div class="milestone-card shadow-sm" data-aos="slide-right" data-aos-delay="${i * 150}" data-aos-duration="800">
+                    <div class="milestone-card shadow-sm animate-fade-in" style="animation-delay: ${i * 0.1}s">
                         <div class="milestone-number">${i + 1}</div>
                         <div class="flex justify-between font-bold text-gray-800">
                             <span>${p.name}</span>
@@ -151,17 +153,17 @@ function renderUI(plan, difficulty) {
             </div>
 
             <div class="space-y-6">
-                <div class="habits-sidebar shadow-lg" data-aos="flip-left" data-aos-duration="1000">
+                <div class="habits-sidebar shadow-lg">
                     <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><i class="fa-solid fa-bolt text-yellow-400"></i> Daily Habits</h3>
                     <ul class="space-y-4 text-sm opacity-90">
-                        ${plan.habits.map((h, i) => `<li class="flex gap-2" data-aos="fade-up" data-aos-delay="${i * 100}"><span>•</span> ${h}</li>`).join('')}
+                        ${plan.habits.map(h => `<li class="flex gap-2"><span>•</span> ${h}</li>`).join('')}
                     </ul>
                 </div>
-                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm" data-aos="flip-right" data-aos-duration="1000">
+                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 class="font-bold text-gray-800 mb-4">Common Hurdles</h3>
                     <div class="space-y-4">
-                        ${plan.hurdles.map((h, i) => `
-                            <div data-aos="fade-up" data-aos-delay="${i * 150}">
+                        ${plan.hurdles.map(h => `
+                            <div>
                                 <p class="font-bold text-sm text-gray-700">"${h.issue}"</p>
                                 <p class="text-xs text-gray-500 mt-1">Solution: ${h.sol}</p>
                             </div>
@@ -172,11 +174,10 @@ function renderUI(plan, difficulty) {
         </div>
 
         <div class="mt-12 pb-20">
-             <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600" data-aos="zoom-in"><i class="fa-solid fa-book-open"></i> Curated Resources</h3>
+             <h3 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600"><i class="fa-solid fa-book-open"></i> Curated Resources</h3>
              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                ${plan.resources.map((r, i) => `
-                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group"
-                         data-aos="zoom-in-up" data-aos-delay="${i * 100}" data-aos-duration="800">
+                ${plan.resources.map(r => `
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:border-indigo-300 transition-all cursor-pointer group">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">${r.type} • ${r.price}</span>
                         <h4 class="font-bold text-gray-800 group-hover:text-indigo-600 transition-colors">${r.name}</h4>
                         <p class="text-xs text-gray-500 mt-1 line-clamp-2">${r.desc}</p>
@@ -185,7 +186,4 @@ function renderUI(plan, difficulty) {
              </div>
         </div>
     `;
-
-    // CRITICAL: Refresh AOS so new dynamic elements animate too
-    AOS.refresh();
 }
