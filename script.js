@@ -1,4 +1,6 @@
 const generateBtn = document.getElementById('generate-btn');
+const btnText = document.querySelector('#generate-btn .btn-text');
+const btnSpinner = document.querySelector('#generate-btn .btn-spinner');
 const inputCard = document.getElementById('input-card');
 const loadingState = document.getElementById('loading-state');
 const resultContainer = document.getElementById('result-container');
@@ -32,6 +34,12 @@ generateBtn.addEventListener('click', async () => {
     const dueDate = document.getElementById('due-date').value;
 
     if (!aim || !dueDate) return alert("Please enter your goal and a due date!");
+
+    // --- Start Loading State ---
+    generateBtn.disabled = true;
+    btnText.classList.add('hidden');
+    btnSpinner.classList.remove('hidden');
+    generateBtn.classList.add('cursor-not-allowed');
 
     // UI Transition
     inputCard.classList.add('hidden');
@@ -84,6 +92,12 @@ generateBtn.addEventListener('click', async () => {
         inputCard.classList.remove('hidden');
         headerSection.classList.remove('hidden');
         loadingState.classList.add('hidden');
+    } finally {
+        // --- End Loading State ---
+        generateBtn.disabled = false;
+        btnText.classList.remove('hidden');
+        btnSpinner.classList.add('hidden');
+        generateBtn.classList.remove('cursor-not-allowed');
     }
 });
 
